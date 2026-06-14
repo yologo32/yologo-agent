@@ -2,8 +2,24 @@
 // Entry point - khởi động Zalo AI Bot
 
 import 'dotenv/config';
+import http from 'http';
 import { startBot } from './src/bot.js';
 import { logger } from './src/logger.js';
+
+// ─────────────────────────────────────────────
+// Health check server (port 8080)
+// ─────────────────────────────────────────────
+http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok' }));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+}).listen(8080, () => {
+  logger.info('Health check server listening on :8080/health');
+});
 
 // ─────────────────────────────────────────────
 // Banner

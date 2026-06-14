@@ -1,0 +1,30 @@
+# Dependencies (sẽ được cài lại trong Docker)
+node_modules/
+
+# Secrets — KHÔNG BAO GIỜ đưa vào image
+.env
+*.env
+.env.*
+!.env.example
+
+# Zalo session file (dùng env var ZALO_SESSION thay thế)
+zalo_session.json
+
+# Git
+.git/
+.gitignore
+
+# Docker files (không cần copy vào image)
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose*.yml
+
+# Logs
+*.log
+logs/
+
+# Misc
+.DS_Store
+Thumbs.db
+README.md

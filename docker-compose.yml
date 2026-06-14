@@ -1,0 +1,42 @@
+services:
+  zalo-bot:
+    build: .
+    image: zalo-ai-bot:latest
+    container_name: zalo-ai-bot
+
+    # ──────────────────────────────────────────
+    # ENV VARS — bắt buộc điền trước khi chạy
+    # ──────────────────────────────────────────
+    environment:
+      - AI_PLATFORM_API_KEY=${AI_PLATFORM_API_KEY}
+      - ZALO_SESSION=${ZALO_SESSION}
+      - BOT_NAME=${BOT_NAME:-BotGenZ}
+      - BOT_OWNER_IDS=${BOT_OWNER_IDS:-}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-10}
+      - NODE_ENV=production
+
+    # ──────────────────────────────────────────
+    # Volume: mount thư mục ./qr ra host để lấy qr.png
+    # ──────────────────────────────────────────
+    volumes:
+      - ./qr:/app/qr
+
+    # ──────────────────────────────────────────
+    # TTY — cần thiết để hiển thị output đầy đủ
+    # ──────────────────────────────────────────
+    stdin_open: true
+    tty: true
+
+    # ──────────────────────────────────────────
+    # Tự restart khi crash (trừ khi dừng thủ công)
+    # ──────────────────────────────────────────
+    restart: unless-stopped
+
+    # ──────────────────────────────────────────
+    # Logging: giới hạn log file để không đầy disk
+    # ──────────────────────────────────────────
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

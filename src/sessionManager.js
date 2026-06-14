@@ -3,6 +3,7 @@
 // Không cần file — thân thiện với cloud (Railway, Render, Fly.io, VPS...)
 
 import { Zalo, LoginQRCallbackEventType } from 'zca-js';
+import qrcode from 'qrcode-terminal';
 import { logger } from './logger.js';
 
 const ENV_KEY = 'ZALO_SESSION';
@@ -47,8 +48,8 @@ async function tryLoginWithEnv() {
   logger.info(`Tìm thấy ${ENV_KEY}, đang thử đăng nhập...`);
   try {
     const credentials = decodeSession(b64);
-    const zalo = new Zalo(credentials, undefined, { logging: false });
-    const api = await zalo.login();
+    const zalo = new Zalo({ logging: false });
+    const api = await zalo.login(credentials);
     logger.success('✅ Đăng nhập bằng session thành công! (không cần quét QR)');
     return api;
   } catch (err) {
@@ -76,12 +77,15 @@ async function loginWithQR() {
   // Bắt credentials từ event GotLoginInfo trong callback
   let capturedCredentials = null;
 
-  const api = await zaloInstance.loginQR(async (event) => {
+  const api = await zaloInstance.loginQR({}, async (event) => {
     switch (event.type) {
-      // QR được tạo — in ra terminal
+      // QR được tạo — lưu ra file trong thư mục /app/qr (được mount ra host)
       case LoginQRCallbackEventType.QRCodeGenerated:
-        await event.actions.saveToFile(); // tự in QR lên terminal
-        logger.info('QR code đã hiển thị — hãy quét bằng Zalo trên điện thoại.');
+        await event.actions.saveToFile('/app/qr/qr.png');
+        logger.info('╔══════════════════════════════════════════════════════╗');
+        logger.info('║  QR đã được lưu vào thư mục  ./qr/qr.png  trên host ║');
+        logger.info('║  Mở file đó rồi quét bằng Zalo trên điện thoại      ║');
+        logger.info('╚══════════════════════════════════════════════════════╝');
         break;
 
       // QR hết hạn — tự retry
