@@ -133,16 +133,27 @@ export function isSummaryTrigger(text) {
     'có biến gì',
     'chuyện gì vạy',
     'chuyện gì vậy',
+    'chuyện gì vậy man',
+    'chiện gì',
+    'ch gì vậy',
+    'ch gì đang',
     'kể nghe với',
     'vụ gì v',
     'tóm tắt',
+    'tóm lại là',
     'nói cái gì mà dài vậy',
     'nói cái gì mà dài v',
     'ai rảnh tóm tắt không',
     'ai rảnh tóm tắt',
+    'có ai đó tóm tắt',
     'mn đang nói gì',
     'mọi người đang nói gì',
-    'tóm lại là',
+    'đang nói gì vậy',
+    'đang nói gì v',
+    'chả hiểu gì cả',
+    'không hiểu gì cả',
+    'hổng hiểu gì',
+
     'hóng'
   ];
 
