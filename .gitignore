@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment variables (KHÔNG commit file này)
+.env
+
+# Zalo session/credentials được lưu sau khi login
+cookies.json
+*.session
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
