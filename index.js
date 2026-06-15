@@ -3,8 +3,11 @@
 
 import 'dotenv/config';
 import http from 'http';
+import fs from 'fs';
 import { startBot } from './src/bot.js';
 import { logger } from './src/logger.js';
+
+const VERSION = fs.readFileSync(new URL('./VERSION', import.meta.url), 'utf8').trim();
 
 // ─────────────────────────────────────────────
 // Health check server (port 8080)
@@ -29,6 +32,7 @@ console.log(`
 ║           🤖  ZALO AI BOT  🤖               ║
 ║        Powered by VNG Cloud AI               ║
 ║   Model: google/gemma-4-31b-it               ║
+║   Version: v${VERSION.padEnd(31)}║
 ╠══════════════════════════════════════════════╣
 ║  Tones: [genz] [cb] [kkk] [mama] [serious]  ║
 ║  Mặc định: [genz] nếu không ghi tone        ║

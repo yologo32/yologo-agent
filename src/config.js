@@ -28,6 +28,12 @@ export const config = {
     rateLimitPerMinute: parseInt(process.env.RATE_LIMIT_PER_MINUTE || '10', 10),
   },
 
+  // Contract /hd feature
+  contract: {
+    allowedIds: (process.env.CONTRACT_IDS || '')
+      .split(',').map(id => id.trim()).filter(Boolean),
+  },
+
   // Danh sách tone keyword được hỗ trợ
   tones: {
     DEFAULT: 'auto',
