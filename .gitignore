@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+package-lock.json
 
 # Environment variables (KHÔNG commit file này)
 .env
@@ -18,3 +19,4 @@ npm-debug.log*
 Thumbs.db
 .greennode.json
 .agentbase/
+.claude/settings.local.json
