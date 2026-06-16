@@ -1,26 +1,14 @@
-# 🤖 Zalo AI Bot
+# 🤖 Yô lô gơ Agent Bot
 
-Bot Zalo cá nhân tích hợp AI của VNG Cloud. Khi bị tag trong group, bot sẽ trả lời theo phong cách bạn chọn — Gen Z, châm biếm, khịa, cà khịa hoặc nghiêm túc — hoàn toàn bằng **tiếng Việt**.
+Bot Zalo tích hợp AI của VNG Cloud, chạy trong group chat. Hai tính năng chính:
 
----
+> 📝 **Điền hợp đồng tự động** — gửi 3 file (template Word + Excel + GPKD), bot trả về hợp đồng đã điền đầy đủ thông tin doanh nghiệp trong vài giây.
 
-## ✨ Tính năng
-
-- Lắng nghe tin nhắn trong **Zalo Group**
-- Phát hiện khi bị **tag/mention**
-- Hỗ trợ **5 phong cách trả lời** khác nhau
-- Tích hợp **VNG Cloud AI** (model `google/gemma-4-31b-it`)
-- **Điền hợp đồng tự động** từ file GPKD, CCCD và dữ liệu Excel
-- Rate limiting để tránh spam
-- Lưu session đăng nhập (không cần scan QR lại sau lần đầu)
+> 💬 **Trả lời AI** — tag bot trong group là được, hỗ trợ nhiều phong cách: Gen Z, châm biếm, khịa, nghiêm túc...
 
 ---
 
 ## 📝 Tính Năng Hợp Đồng (`/hd`)
-
-Tính năng nổi bật: tự động điền thông tin doanh nghiệp vào template hợp đồng Word chỉ với một lệnh.
-
-### Cách dùng
 
 Gõ `/hd` trong group, sau đó gửi 3 file bắt buộc (trong vòng 90 giây):
 
@@ -66,17 +54,16 @@ Template `.docx` sử dụng cú pháp `{ten_truong}`:
 
 ---
 
-## 🎭 Các Tone Hỗ Trợ
+## 💬 Trả Lời AI
 
-| Keyword    | Phong cách                              | Emoji |
-|------------|-----------------------------------------|-------|
-| `[genz]`   | Gen Z Việt Nam, từ lóng hiện hành       | ✨    |
-| `[cb]`     | Châm biếm, mỉa mai tinh tế             | 🎭    |
-| `[kkk]`    | Khịa thẳng, đá đểu nhưng không tục tĩu | 🗿    |
-| `[mama]`   | Cà khịa dí dỏm, hài hước               | 😅    |
-| `[serious]`| Nghiêm túc, chuyên nghiệp              | 💼    |
+Tag bot trong group kèm câu hỏi:
 
-> **Mặc định**: Nếu không ghi tone, bot dùng `[genz]`
+```
+@Bot [genz] Deadline là gì vậy?
+@Bot [cb] Tại sao sếp hay cancel meeting?
+@Bot [kkk] Sao phải làm overtime?
+@Bot Cà phê uống nhiều có tốt không?
+```
 
 ---
 
@@ -105,7 +92,6 @@ npm install
 ### 3. Cấu hình `.env`
 
 ```bash
-# Copy file mẫu
 copy .env.example .env
 ```
 
@@ -125,48 +111,25 @@ RATE_LIMIT_PER_MINUTE=10
 npm start
 ```
 
-Bot sẽ hiển thị **QR code trong terminal**. Mở Zalo trên điện thoại:
-- **Android**: Trang chủ → Biểu tượng QR góc trên phải
-- **iOS**: Cài đặt → QR Code
+Bot sẽ hiển thị **QR code trong terminal**. Mở Zalo trên điện thoại → scan QR.
 
-Scan xong, bot sẽ tự động login và bắt đầu lắng nghe.
-
-> **Lần sau**: Session được lưu vào `zalo_session.json`, không cần scan lại trừ khi session hết hạn.
+> **Lần sau**: Session được lưu lại, không cần scan lại trừ khi hết hạn.
 
 ---
 
-## 💬 Cách Sử Dụng
+## ⚙️ Cấu Hình
 
-Trong **Zalo group** có bot, tag bot kèm câu hỏi:
-
-```
-@Bot [genz] Deadline là gì vậy?
-@Bot [cb] Tại sao sếp hay cancel meeting?
-@Bot [kkk] Sao phải làm overtime?
-@Bot [mama] Explain KPI cho tôi với
-@Bot [serious] Phân tích điểm mạnh yếu của mô hình OKR
-@Bot Cà phê uống nhiều có tốt không?   ← mặc định dùng genz
-```
+| Biến môi trường          | Mặc định   | Mô tả                           |
+|--------------------------|------------|---------------------------------|
+| `AI_PLATFORM_API_KEY`    | (bắt buộc) | VNG Cloud API Key               |
+| `BOT_NAME`               | `Bot`      | Tên hiển thị của bot            |
+| `RATE_LIMIT_PER_MINUTE`  | `10`       | Số lần reply tối đa/user/phút   |
 
 ---
 
-## ⚙️ Cấu Hình Nâng Cao
+## ⚠️ Lưu Ý
 
-| Biến môi trường          | Mặc định | Mô tả                           |
-|--------------------------|----------|---------------------------------|
-| `AI_PLATFORM_API_KEY`    | (bắt buộc) | VNG Cloud API Key             |
-| `BOT_NAME`               | `Bot`    | Tên hiển thị của bot            |
-| `RATE_LIMIT_PER_MINUTE`  | `10`     | Số lần reply tối đa/user/phút   |
-
----
-
-## ⚠️ Lưu Ý Quan Trọng
-
-> **Rủi ro tài khoản**: `zca-js` là thư viện **không chính thức**. Zalo không cho phép automation trên tài khoản cá nhân. Có nguy cơ tài khoản bị khóa. **Luôn dùng tài khoản phụ**, không dùng tài khoản chính.
-
-- Bot chỉ reply trong **group**, không reply DM cá nhân
-- Bot chỉ reply khi được **@mention** trực tiếp
-- Giữ `zalo_session.json` bảo mật (đã có trong `.gitignore`)
+> **Rủi ro tài khoản**: `zca-js` là thư viện **không chính thức**. Zalo không cho phép automation trên tài khoản cá nhân. Có nguy cơ tài khoản bị khóa. **Luôn dùng tài khoản phụ.**
 
 ---
 
@@ -176,24 +139,19 @@ Trong **Zalo group** có bot, tag bot kèm câu hỏi:
 zalo-ai-bot/
 ├── index.js              # Entry point
 ├── package.json
-├── .env.example          # Template cấu hình
-├── .env                  # Cấu hình thực (không commit)
-├── .gitignore
+├── .env.example
 └── src/
-    ├── bot.js                      # Logic chính: login + lắng nghe
-    ├── ai.js                       # Gọi VNG Cloud AI API
-    ├── contractHandler.js          # Xử lý lệnh /hd: điền hợp đồng
-    ├── contractSession.js          # Thu thập file trong 90 giây
-    ├── docxFiller.js               # Điền {placeholder} vào Word template
-    ├── tones.js                    # Định nghĩa phong cách trả lời
-    ├── messageParser.js            # Phân tích tin nhắn, detect mention
-    ├── rateLimiter.js              # Giới hạn số request mỗi phút
-    ├── config.js                   # Cấu hình tập trung
-    ├── logger.js                   # Logger màu sắc
+    ├── bot.js                         # Login + lắng nghe group
+    ├── ai.js                          # Gọi VNG Cloud AI API
+    ├── contractHandler.js             # Xử lý /hd: điền hợp đồng
+    ├── contractSession.js             # Thu thập file trong 90 giây
+    ├── docxFiller.js                  # Điền {placeholder} vào Word
+    ├── config.js
+    ├── logger.js
     └── extractors/
-        ├── extractFromXLSX.js      # Đọc dữ liệu từ file Excel
-        ├── extractFromGPKD.js      # OCR giấy phép kinh doanh (AI Vision)
-        ├── extractFromCCCD.js      # OCR CCCD (AI Vision)
+        ├── extractFromXLSX.js         # Đọc dữ liệu từ Excel
+        ├── extractFromGPKD.js         # OCR GPKD (AI Vision)
+        ├── extractFromCCCD.js         # OCR CCCD (AI Vision)
         └── extractFromGiayUyQuyen.js  # OCR giấy ủy quyền (AI Vision)
 ```
 
@@ -201,16 +159,8 @@ zalo-ai-bot/
 
 ## 🛠️ Troubleshooting
 
-**Bot không nhận được tin nhắn?**
-- Đảm bảo bot đã được thêm vào group
-- Kiểm tra `zalo_session.json` có tồn tại không
-- Thử xóa session và scan QR lại
+**Bot không nhận tin nhắn?** — Kiểm tra session còn hiệu lực, bot đã có trong group, và đang được @mention đúng.
 
-**Lỗi API Key?**
-- Kiểm tra `AI_PLATFORM_API_KEY` trong `.env`
-- Đảm bảo key còn quota trên VNG Cloud Console
+**Lỗi API Key?** — Kiểm tra `AI_PLATFORM_API_KEY` trong `.env` và quota còn trên VNG Cloud Console.
 
-**`/hd` không điền được thông tin?**
-- Đảm bảo template `.docx` dùng đúng cú pháp `{placeholder}` (không có dấu cách bên trong)
-- File GPKD phải là PDF scan rõ nét để AI đọc được
-- Kiểm tra file Excel có đúng cột theo format mẫu không
+**`/hd` không điền được?** — Template `.docx` phải dùng đúng cú pháp `{placeholder}`, GPKD phải scan rõ nét, Excel đúng format.
