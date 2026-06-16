@@ -4,7 +4,7 @@ Bot Zalo tích hợp AI của VNG Cloud, chạy trong group chat. Hai tính năn
 
 > 📝 **Điền hợp đồng tự động** — gửi 3 file (template Word + Excel + GPKD), bot trả về hợp đồng đã điền đầy đủ thông tin doanh nghiệp trong vài giây.
 
-> 💬 **Trả lời AI** — tag bot trong group là được, hỗ trợ nhiều phong cách: Gen Z, châm biếm, khịa, nghiêm túc...
+> 📋 **Tóm tắt hội thoại** — tag bot và yêu cầu tóm tắt, bot đọc lịch sử chat trong group và trả về bản tóm tắt ngắn gọn các điểm chính.
 
 ---
 
@@ -54,15 +54,14 @@ Template `.docx` sử dụng cú pháp `{ten_truong}`:
 
 ---
 
-## 💬 Trả Lời AI
+## 📋 Tính Năng Tóm Tắt Hội Thoại
 
-Tag bot trong group kèm câu hỏi:
+Tag bot trong group và yêu cầu tóm tắt — bot sẽ đọc lịch sử chat và trả về bản tóm tắt các điểm chính, quyết định, và việc cần làm.
 
 ```
-@Bot [genz] Deadline là gì vậy?
-@Bot [cb] Tại sao sếp hay cancel meeting?
-@Bot [kkk] Sao phải làm overtime?
-@Bot Cà phê uống nhiều có tốt không?
+@Bot tóm tắt hội thoại hôm nay
+@Bot tóm tắt những gì đã bàn về dự án X
+@Bot recap cuộc họp vừa rồi
 ```
 
 ---
