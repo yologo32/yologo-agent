@@ -9,84 +9,6 @@ function escapeXml(s) {
     .replace(/"/g, '&quot;');
 }
 
-function getParaText(pXml) {
-  return pXml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-const DOTS_ONLY_RE = /^[…\.]+$/;
-const HAS_DOTS_RE = /[…]{2,}|\.{5,}/;
-
-function replaceDots(paraXml, value) {
-  const escaped = escapeXml(value || '');
-  let filledFirst = false;
-  return paraXml.replace(/<w:t([^>]*)>([^<]*)<\/w:t>/g, (match, attrs, content) => {
-    const stripped = content.replace(/^CÔNG TY\s+/, '').replace(/^[\s]+/, '').trim();
-    if (DOTS_ONLY_RE.test(stripped) && stripped.length > 0) {
-      if (!filledFirst) {
-        filledFirst = true;
-        return '<w:t' + attrs + '>' + escaped + '</w:t>';
-      } else {
-        return '<w:t' + attrs + '></w:t>';
-      }
-    }
-    return match;
-  });
-}
-
-function replaceMixedDots(paraXml, value) {
-  return replaceDots(paraXml, value);
-}
-
-function replaceClickOrTap(xml, nth, value) {
-  const escaped = escapeXml(value || '');
-  const PLACEHOLDER = 'Click or tap here to enter text.';
-  let count = 0;
-  let pos = 0;
-
-  while (true) {
-    const idx = xml.indexOf(PLACEHOLDER, pos);
-    if (idx < 0) break;
-
-    count++;
-    if (count !== nth) {
-      pos = idx + PLACEHOLDER.length;
-      continue;
-    }
-
-    // Find the opening <w:t ...> right before this placeholder
-    const tOpen = xml.lastIndexOf('<w:t', idx);
-    const tClose = xml.indexOf('</w:t>', idx) + 6;
-
-    // Replace entire <w:t...>placeholder</w:t> with our value
-    xml = xml.slice(0, tOpen) + '<w:t>' + escaped + '</w:t>' + xml.slice(tClose);
-
-    // Remove <w:showingPlcHdr/> in the enclosing SDT (look back up to 3000 chars)
-    const lookback = Math.max(0, tOpen - 3000);
-    const before = xml.slice(lookback, tOpen);
-    const plcIdx = before.lastIndexOf('<w:showingPlcHdr/>');
-    if (plcIdx >= 0) {
-      const abs = lookback + plcIdx;
-      xml = xml.slice(0, abs) + xml.slice(abs + '<w:showingPlcHdr/>'.length);
-    }
-
-    break;
-  }
-
-  return xml;
-}
-
-function identifyLabel(text) {
-  const t = text.toLowerCase().trim();
-  if (t === 'tên:' || t === 'tên') return 'ten';
-  if (t === 'địa chỉ:' || t === 'địa chỉ') return 'dia_chi';
-  if (t === 'điện thoại:' || t === 'điện thoại') return 'dien_thoai';
-  if (t === 'mã số thuế' || t === 'mã số thuế:' || t === 'mã số doanh nghiệp' || t === 'mã số doanh nghiệp:') return 'ma_so_thue';
-  if (t === 'đại diện' || t === 'đại diện:' || t === 'người đại diện' || t === 'người đại diện:') return 'dai_dien';
-  if (t === 'chức vụ:' || t === 'chức vụ') return 'chuc_vu';
-  if (t === 'giấy ủy quyền:' || t === 'giấy ủy quyền') return 'giay_uy_quyen';
-  return null;
-}
-
 function makeStoreRow(stt, ten, diaChi) {
   const borders = '<w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/><w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/></w:tcBorders>';
   const pPr = '<w:pPr><w:spacing w:before="120" w:after="120" w:line="288" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:pPr>';
@@ -98,9 +20,8 @@ function makeStoreRow(stt, ten, diaChi) {
 }
 
 function fillStoreTable(xml, stores) {
-  // Use specific marker to find the correct table (not the "PHAM VI CHAP NHAN" table)
-  const MARKER = 'DANH SACH DIEM CHAP NHAN';
   const MARKER_VI = 'DANH SÁCH ĐIỂM CHẤP NHẬN';
+  const MARKER    = 'DANH SACH DIEM CHAP NHAN';
 
   let markerIdx = xml.indexOf(MARKER_VI);
   if (markerIdx < 0) markerIdx = xml.indexOf(MARKER);
@@ -109,134 +30,143 @@ function fillStoreTable(xml, stores) {
   const tblIdx = xml.indexOf('<w:tbl>', markerIdx);
   if (tblIdx < 0) return xml;
 
-  const tblEnd = xml.indexOf('</w:tbl>', tblIdx) + 8;
-  const tblXml = xml.slice(tblIdx, tblEnd);
-
+  const tblEnd   = xml.indexOf('</w:tbl>', tblIdx) + 8;
+  const tblXml   = xml.slice(tblIdx, tblEnd);
   const firstTrEnd = tblXml.indexOf('</w:tr>') + 7;
   const tblProps = tblXml.slice(0, tblXml.indexOf('<w:tr'));
   const headerTr = tblXml.slice(tblXml.indexOf('<w:tr'), firstTrEnd);
 
   const dataRows = stores.map(s => makeStoreRow(s.stt, s.ten, s.dia_chi)).join('');
-  const newTbl = tblProps + headerTr + dataRows + '</w:tbl>';
+  const newTbl   = tblProps + headerTr + dataRows + '</w:tbl>';
   return xml.slice(0, tblIdx) + newTbl + xml.slice(tblEnd);
 }
 
-// Fill Bên A representative table (ĐẠI DIỆN BÊN A)
-// Structure: table with 2 rows (header + data), 2 cells (BênA | BênB)
-// Cell[0] = BênA, contains paragraphs with inline label+dots patterns
-function fillRepresentativeTable(xml, fields) {
-  const MARKER = 'ĐẠI DIỆN BÊN A';
-  const markerIdx = xml.indexOf(MARKER);
-  if (markerIdx < 0) return xml;
+/**
+ * Word splits {placeholder} text across multiple XML runs when a user edits the template.
+ * Handles two patterns:
+ *   A) { in its own run, full name in one run, } in its own run
+ *   B) { in its own run, name split across 2+ runs, } at end of last run's text
+ *
+ * Approach: find each '{</w:t>' position, scan forward collecting <w:t> text,
+ * stop when '}' is found. If the collected text is a valid placeholder name,
+ * replace the entire XML span with '{name}</w:t></w:r>'.
+ */
+function consolidateSplitPlaceholders(xml) {
+  let result = xml;
+  let changed = true;
 
-  const tblStart = xml.lastIndexOf('<w:tbl>', markerIdx);
-  if (tblStart < 0) return xml;
-  const tblEnd = xml.indexOf('</w:tbl>', tblStart) + 8;
-  const tblXml = xml.slice(tblStart, tblEnd);
+  while (changed) {
+    changed = false;
+    const openIdx = result.indexOf('{</w:t>');
+    if (openIdx < 0) break;
 
-  // Skip header row, find data row
-  const firstTrEnd = tblXml.indexOf('</w:tr>') + 7;
-  const dataRowStart = tblXml.indexOf('<w:tr', firstTrEnd);
-  if (dataRowStart < 0) return xml;
-  const dataRowEnd = tblXml.indexOf('</w:tr>', dataRowStart) + 7;
-  const dataRow = tblXml.slice(dataRowStart, dataRowEnd);
+    // Scan forward from after '{</w:t>' collecting text from <w:t> elements
+    let pos = openIdx + 7;
+    let accumulated = '';
+    let lastMatchEnd = -1;
 
-  // First <w:tc> is Bên A column (may have attributes, use '<w:tc')
-  const tcStart = dataRow.indexOf('<w:tc');
-  const tcEnd = dataRow.indexOf('</w:tc>') + 7;
-  if (tcStart < 0) return xml;
-  const benaCell = dataRow.slice(tcStart, tcEnd);
+    const tRe = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+    tRe.lastIndex = pos;
 
-  // Fill dots in Bên A cell: each paragraph has inline label prefix + dots
-  const filledCell = benaCell.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (paraXml) => {
-    const text = getParaText(paraXml);
-    if (!HAS_DOTS_RE.test(text)) return paraXml;
-    const tl = text.toLowerCase();
-    let value = '';
-    if (tl.includes('ông') && (tl.includes('bà') || tl.includes('ba'))) value = fields.dai_dien || '';
-    else if (tl.includes('chức vụ')) value = fields.chuc_vu || '';
-    else if (tl.includes('email')) value = fields.email || '';
-    else if (tl.includes('điện thoại') || tl.includes('mobile')) value = fields.dien_thoai || '';
-    return value ? replaceDots(paraXml, value) : paraXml;
-  });
+    let tm;
+    let scanLimit = pos + 3000;
+    let foundClose = false;
 
-  const newDataRow = dataRow.slice(0, tcStart) + filledCell + dataRow.slice(tcEnd);
-  const newTbl = tblXml.slice(0, dataRowStart) + newDataRow + tblXml.slice(dataRowEnd);
-  return xml.slice(0, tblStart) + newTbl + xml.slice(tblEnd);
+    while ((tm = tRe.exec(result)) !== null && tm.index < scanLimit) {
+      const textPart = tm[1];
+      accumulated += textPart;
+
+      if (accumulated.includes('}')) {
+        const closeIdx = accumulated.indexOf('}');
+        const namePart = accumulated.slice(0, closeIdx);
+        const afterClose = accumulated.slice(closeIdx + 1);
+
+        // Must be a valid placeholder name (letters/underscores only)
+        if (/^[a-zA-Z_]+$/.test(namePart)) {
+          // Find </w:r> right after this </w:t>
+          const tmEnd = tm.index + tm[0].length;
+          const rClose = result.indexOf('</w:r>', tmEnd);
+          if (rClose >= 0) {
+            const replaceEnd = rClose + 6;
+            const newContent = '{' + namePart + '}</w:t></w:r>'
+              + (afterClose ? '<w:r><w:t>' + afterClose + '</w:t></w:r>' : '');
+            result = result.slice(0, openIdx) + newContent + result.slice(replaceEnd);
+            changed = true;
+            foundClose = true;
+          }
+        }
+        break; // stop scanning (either replaced or invalid)
+      }
+    }
+
+    // If no valid close found, skip this '{' to avoid infinite loop
+    if (!foundClose && !changed) {
+      // Temporarily mark to skip; restore after loop
+      result = result.slice(0, openIdx) + '\x00' + result.slice(openIdx + 1);
+    }
+  }
+
+  // Restore any skipped '{'
+  return result.replace(/\x00/g, '{');
 }
 
+/**
+ * Fill all {placeholder} markers in the document XML.
+ * Handles placeholders split across runs by Word's XML engine.
+ */
 export async function fillDocxTemplate(templateBuffer, fields) {
   const zip = await JSZip.loadAsync(templateBuffer);
   let xml = await zip.file('word/document.xml').async('string');
 
-  const paraRe = /<w:p[ >][\s\S]*?<\/w:p>/g;
-  const parts = [];
-  let lastIdx = 0;
-  let m;
-  paraRe.lastIndex = 0;
-  while ((m = paraRe.exec(xml)) !== null) {
-    if (m.index > lastIdx) parts.push({ type: 'gap', content: xml.slice(lastIdx, m.index) });
-    parts.push({ type: 'para', content: m[0] });
-    lastIdx = paraRe.lastIndex;
-  }
-  if (lastIdx < xml.length) parts.push({ type: 'gap', content: xml.slice(lastIdx) });
+  // Merge any {placeholder} text that Word split across XML runs
+  xml = consolidateSplitPlaceholders(xml);
 
   const FIELD_MAP = {
-    ten:          fields.ten || '',
-    dia_chi:      fields.dia_chi || '',
-    dien_thoai:   fields.dien_thoai || '',
-    ma_so_thue:   fields.ma_so_thue || '',
-    dai_dien:     fields.dai_dien || '',
-    chuc_vu:      fields.chuc_vu || '',
-    giay_uy_quyen: fields.giay_uy_quyen || '',
+    // Company info (from GPKD)
+    ten_ben_a:      fields.ten          || '',
+    dia_chi_ben_a:  fields.dia_chi      || '',
+    ma_so_thue:     fields.ma_so_thue   || '',
+    dai_dien:       fields.dai_dien     || '',
+    chuc_vu:        fields.chuc_vu      || '',
+    giay_uy_quyen:  fields.giay_uy_quyen || '',
+
+    // Bank / contact (from XLSX)
+    so_tai_khoan:   fields.so_tai_khoan     || '',
+    ngan_hang:      fields.ngan_hang        || '',
+    ten_chu_tk:     fields.ten_chu_tai_khoan || fields.ten || '',
+    hotline:        fields.hotline          || fields.dien_thoai || '',
+    email:          fields.email            || '',
+
+    // BÊN A contact table — role 1: phụ trách hợp đồng
+    ct_hd_ten:      fields.ct_hd_ten    || '',
+    ct_hd_cv:       fields.ct_hd_cv     || '',
+    ct_hd_email:    fields.ct_hd_email  || '',
+    ct_hd_sdt:      fields.ct_hd_sdt    || '',
+
+    // BÊN A contact table — roles 2-4: from xlsx extended fields (blank if not provided)
+    ct_kt_ten:      fields.ct_kt_ten    || '',
+    ct_kt_cv:       fields.ct_kt_cv     || '',
+    ct_kt_email:    fields.ct_kt_email  || '',
+    ct_kt_sdt:      fields.ct_kt_sdt    || '',
+
+    ct_kh_ten:      fields.ct_kh_ten    || '',
+    ct_kh_cv:       fields.ct_kh_cv     || '',
+    ct_kh_email:    fields.ct_kh_email  || '',
+    ct_kh_sdt:      fields.ct_kh_sdt    || '',
+
+    ct_tt_ten:      fields.ct_tt_ten    || '',
+    ct_tt_cv:       fields.ct_tt_cv     || '',
+    ct_tt_email:    fields.ct_tt_email  || '',
+    ct_tt_sdt:      fields.ct_tt_sdt    || '',
   };
 
-  let currentLabel = null;
-
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (part.type !== 'para') continue;
-
-    const text = getParaText(part.content);
-    const label = identifyLabel(text);
-
-    if (label) {
-      currentLabel = label;
-      continue;
-    }
-
-    if (currentLabel && HAS_DOTS_RE.test(text)) {
-      const value = FIELD_MAP[currentLabel] || '';
-      parts[i] = { type: 'para', content: replaceDots(part.content, value) };
-      currentLabel = null;
-      continue;
-    }
-
-    const lowerText = text.toLowerCase();
-    if (lowerText.startsWith('hotline:') && HAS_DOTS_RE.test(text)) {
-      parts[i] = { type: 'para', content: replaceMixedDots(part.content, fields.hotline || fields.dien_thoai || '') };
-      currentLabel = null;
-      continue;
-    }
-    if (lowerText.startsWith('email:') && HAS_DOTS_RE.test(text)) {
-      parts[i] = { type: 'para', content: replaceMixedDots(part.content, fields.email || '') };
-      currentLabel = null;
-      continue;
-    }
-
-    if (text && !HAS_DOTS_RE.test(text) && !label) {
-      currentLabel = null;
-    }
+  // Replace all {placeholder} occurrences
+  for (const [key, value] of Object.entries(FIELD_MAP)) {
+    const escaped = escapeXml(value);
+    xml = xml.split('{' + key + '}').join(escaped);
   }
 
-  xml = parts.map(p => p.content).join('');
-
-  if (fields.so_tai_khoan) xml = replaceClickOrTap(xml, 1, fields.so_tai_khoan);
-  if (fields.ten_chu_tai_khoan || fields.ten) xml = replaceClickOrTap(xml, 2, fields.ten_chu_tai_khoan || fields.ten);
-  if (fields.ngan_hang) xml = replaceClickOrTap(xml, 3, fields.ngan_hang);
-
-  xml = fillRepresentativeTable(xml, fields);
-
+  // Fill store table (repeating rows — kept as structured logic)
   if (fields.stores && fields.stores.length > 0) {
     xml = fillStoreTable(xml, fields.stores);
   }
