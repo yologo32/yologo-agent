@@ -12,6 +12,7 @@ import { config } from './config.js';
 import { isContractAuthorized } from './contractAuth.js';
 import { startSession, addFileToSession, waitForSession, hasActiveSession, completeSession, REQUIRED_TYPES } from './contractSession.js';
 import { handleContractFiles } from './contractHandler.js';
+import * as metrics from './metrics.js';
 
 export async function startBot() {
   logger.bot('Đang khởi động Zalo AI Bot...');
@@ -95,9 +96,10 @@ export async function startBot() {
     const rawText = typeof content === 'string' ? content : (content?.msg || '');
     if (!rawText.trim()) return;
 
-    // Lưu vào memory
+    // Lưu vào memory + đếm metrics
     if (senderId !== botUserId && senderId) {
       memory.addMessage(groupId, senderName || senderId, rawText.trim());
+      metrics.recordMessage(groupId);
     }
 
     // ─────────────────────────────────────────────
@@ -140,6 +142,7 @@ export async function startBot() {
         return lines.join('\n');
       }
 
+      metrics.recordContractStart(groupId);
       startSession(groupId, senderId, async (session) => {
         const received = new Set(session.files.map(f => f.type));
         const missingRequired = REQUIRED_TYPES.filter(t => !received.has(t));
@@ -236,7 +239,7 @@ export async function startBot() {
       if (history.length < 2) {
         if (isMentioned) {
           api.sendMessage(
-            { msg: `@${senderName} Group vắng tanh vắng ngắt không biến gì hết má!`,
+            { msg: `@${senderName} Group có ai chat gì đâu mà tóm tắt má!`,
               mentions: [{ uid: senderId, pos: 0, len: senderName.length + 1 }] },
             groupId, ThreadType.Group
           );
@@ -245,6 +248,7 @@ export async function startBot() {
       }
 
       if (!rateLimiter.isAllowed(senderId)) {
+        metrics.recordRateLimit(groupId);
         const retryAfterSec = Math.ceil(rateLimiter.getRetryAfter(senderId) / 1000);
         try {
           await api.sendMessage(
@@ -256,8 +260,11 @@ export async function startBot() {
         return;
       }
 
+      metrics.recordSummaryRequest(groupId);
+      const t0Summary = Date.now();
       try {
         const summaryText = await generateSummary(history);
+        metrics.recordSummaryEnd(Date.now() - t0Summary, true);
         const mentionText = `@${senderName}`;
         await api.sendMessage(
           { msg: `${mentionText} 📢 GÓC TÓM TẮT:\n\n${summaryText}`,
@@ -265,6 +272,7 @@ export async function startBot() {
           groupId, ThreadType.Group
         );
       } catch (err) {
+        metrics.recordSummaryEnd(Date.now() - t0Summary, false);
         logger.error('Lỗi khi tóm tắt:', err);
       }
     }

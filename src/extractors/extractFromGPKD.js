@@ -6,6 +6,7 @@ import path from 'path';
 import os from 'os';
 import OpenAI from 'openai';
 import { config } from '../config.js';
+import { recordAiCall } from '../metrics.js';
 
 const execAsync = promisify(exec);
 const client = new OpenAI({
@@ -56,20 +57,28 @@ export async function extractFromGPKD(pdfBuffer) {
     const base64 = imgBuffer.toString('base64');
     const dataUrl = `data:image/jpeg;base64,${base64}`;
 
-    const response = await client.chat.completions.create({
-      model: config.ai.model,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: GPKD_PROMPT },
-            { type: 'image_url', image_url: { url: dataUrl } },
-          ],
-        },
-      ],
-      max_tokens: 600,
-      temperature: 0.1,
-    });
+    const t0 = Date.now();
+    let response;
+    try {
+      response = await client.chat.completions.create({
+        model: config.ai.model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: GPKD_PROMPT },
+              { type: 'image_url', image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+        max_tokens: 600,
+        temperature: 0.1,
+      });
+      recordAiCall('gpkd', Date.now() - t0, true);
+    } catch (err) {
+      recordAiCall('gpkd', Date.now() - t0, false);
+      throw err;
+    }
 
     const text = response.choices[0]?.message?.content || '';
     try {

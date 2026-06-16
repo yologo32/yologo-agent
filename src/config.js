@@ -30,6 +30,7 @@ export const config = {
 
   // Contract /hd feature
   contract: {
+    allowAll: process.env.CONTRACT_ALLOW_ALL === 'true',
     allowedIds: (process.env.CONTRACT_IDS || '')
       .split(',').map(id => id.trim()).filter(Boolean),
   },

@@ -6,22 +6,30 @@ import http from 'http';
 import fs from 'fs';
 import { startBot } from './src/bot.js';
 import { logger } from './src/logger.js';
+import { getStats } from './src/metrics.js';
+import { renderDashboard } from './src/dashboard.js';
 
 const VERSION = fs.readFileSync(new URL('./VERSION', import.meta.url), 'utf8').trim();
 
 // ─────────────────────────────────────────────
-// Health check server (port 8080)
+// Health check + Metrics dashboard (port 8080)
 // ─────────────────────────────────────────────
 http.createServer((req, res) => {
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok' }));
+    res.end(JSON.stringify({ status: 'ok', version: VERSION, uptime: process.uptime() }));
+  } else if (req.url === '/metrics') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(getStats(), null, 2));
+  } else if (req.url === '/' || req.url === '/dashboard') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(renderDashboard(getStats(), VERSION));
   } else {
     res.writeHead(404);
     res.end();
   }
 }).listen(8080, () => {
-  logger.info('Health check server listening on :8080/health');
+  logger.info('Dashboard: http://localhost:8080  |  /health  |  /metrics');
 });
 
 // ─────────────────────────────────────────────

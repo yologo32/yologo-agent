@@ -4,6 +4,7 @@
 import OpenAI from 'openai';
 import { config } from './config.js';
 import { getTonePrompt } from './tones.js';
+import { recordAiCall } from './metrics.js';
 
 // Khởi tạo OpenAI client trỏ đến VNG Cloud endpoint
 const client = new OpenAI({
@@ -90,6 +91,7 @@ export async function generateSummary(history) {
   const userMessage = `Chat gần nhất:\n\n${chatText}\n\nĐang tình hình gì vậy?`;
 
   let fullResponse = '';
+  const t0 = Date.now();
 
   try {
     const stream = await client.chat.completions.create({
@@ -111,8 +113,10 @@ export async function generateSummary(history) {
       }
     }
 
+    recordAiCall('summary', Date.now() - t0, true);
     return fullResponse.trim();
   } catch (error) {
+    recordAiCall('summary', Date.now() - t0, false);
     throw new Error(`Lỗi AI khi tóm tắt: ${error.message}`);
   }
 }

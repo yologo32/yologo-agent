@@ -27,36 +27,61 @@ function parseContactCell(raw) {
 
 /**
  * Parse STK cell — supports formats:
- *   "TÊN: NGUYEN VAN A - STK:123456789 NGÂN HÀNG VIETCOMBANK"
- *   "VCB: 1234567890"          (legacy simple format)
- *   "1234567890"               (STK only, no bank)
+ *
+ *   Multiline (Alt+Enter in Excel — most common):
+ *     Tên:NGUYEN VAN A
+ *     Số tài khoản: 20262027+A17
+ *     Ngân hàng thu hưởng:AGRIBANK
+ *
+ *   Single-line rich:
+ *     "TÊN: NGUYEN VAN A - STK:123456789 NGÂN HÀNG VIETCOMBANK"
+ *
+ *   Single-line simple:
+ *     "VCB: 1234567890"   or   "1234567890"
+ *
+ * Always returns: { so_tai_khoan, ngan_hang, ten_chu_tai_khoan }
  */
 function parseSTK(value) {
-  // New format: TÊN: ... - STK:<num> NGÂN HÀNG <bank>
+  const lines = value.split('\n').map(l => l.trim()).filter(Boolean);
+
+  if (lines.length > 1) {
+    // Multiline format — parse each line by key:value
+    const result = {};
+    for (const line of lines) {
+      const sep = line.indexOf(':');
+      if (sep < 0) continue;
+      const key = line.slice(0, sep).trim();
+      const val = line.slice(sep + 1).trim();
+      if (!val) continue;
+      if (/^(tên|ten|name)$/i.test(key))               result.ten_chu_tai_khoan = val;
+      else if (/số tài khoản|so tai khoan|stk/i.test(key)) result.so_tai_khoan = val;
+      else if (/ngân hàng|ngan hang|bank/i.test(key))   result.ngan_hang = val;
+    }
+    return result;
+  }
+
+  // Single-line: TÊN: ... - STK:<num> NGÂN HÀNG <bank>
+  const richFmt = value.match(/(?:TÊN|TEN)[:\s]+([^-\n]+?)(?:\s*-\s*|\s+)STK[:\s]*(\S+)\s+(?:NGÂN HÀNG|NH|BANK)\s+(.+)/i);
+  if (richFmt) {
+    return { ten_chu_tai_khoan: richFmt[1].trim(), so_tai_khoan: richFmt[2].trim(), ngan_hang: richFmt[3].trim() };
+  }
+  // STK:num NGÂN HÀNG bank
   const newFmt = value.match(/STK[:\s]*(\S+)\s+(?:NGÂN HÀNG|NH|BANK)\s+(.+)/i);
   if (newFmt) {
     return { so_tai_khoan: newFmt[1].trim(), ngan_hang: newFmt[2].trim() };
   }
-  // STK without bank name: STK:12345
+  // STK:num only
   const stkOnly = value.match(/STK[:\s]*(\S+)/i);
   if (stkOnly) {
     return { so_tai_khoan: stkOnly[1].trim(), ngan_hang: '' };
   }
   // Legacy "BankName: AccountNumber"
-  const legacy = value.match(/^([^:]+):\s*(.+)$/);
+  const legacy = value.match(/^([^:]+):\s*(.+)$/s);
   if (legacy) {
     return { ngan_hang: legacy[1].trim(), so_tai_khoan: legacy[2].trim() };
   }
   // Plain number
   return { so_tai_khoan: value.trim(), ngan_hang: '' };
-}
-
-/**
- * Parse ten_chu_tk from STK cell: "TÊN: NGUYEN VAN A - STK:..."
- */
-function parseTenChuTK(value) {
-  const m = value.match(/TÊN[:\s]+([^-\n]+)/i);
-  return m ? m[1].trim() : '';
 }
 
 /**
@@ -83,8 +108,6 @@ export function extractFromXLSX(buffer) {
     else if (ll.startsWith('stk') || ll === 'stk thanh toán') {
       const stk = parseSTK(value);
       Object.assign(data, stk);
-      const ten = parseTenChuTK(value);
-      if (ten) data.ten_chu_tai_khoan = ten;
     }
     else if (ll.includes('website') || ll.includes('ứng dụng')) data.website = value;
 

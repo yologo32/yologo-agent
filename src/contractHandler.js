@@ -8,6 +8,7 @@ import { extractFromGPKD } from './extractors/extractFromGPKD.js';
 import { extractFromGiayUyQuyen } from './extractors/extractFromGiayUyQuyen.js';
 import { fillDocxTemplate } from './docxFiller.js';
 import { logger } from './logger.js';
+import { recordContractEnd } from './metrics.js';
 
 /**
  * Download a file from a URL, returns Buffer.
@@ -40,6 +41,7 @@ function getMimeType(filename) {
  * Handle completed file collection: extract + fill + send.
  */
 export async function handleContractFiles(files, groupId, senderName, senderId, api) {
+  const t0 = Date.now();
   const docxFile   = files.find(f => f.type === 'docx');
   const imageFile  = files.find(f => f.type === 'image');
   const xlsxFile   = files.find(f => f.type === 'xlsx');
@@ -176,8 +178,10 @@ export async function handleContractFiles(files, groupId, senderName, senderId, 
       groupId,
       ThreadType.Group
     );
+    recordContractEnd(Date.now() - t0, true);
 
   } catch (err) {
+    recordContractEnd(Date.now() - t0, false);
     logger.error('[/hd] Error:', err);
     await api.sendMessage(
       { msg: `❌ @${senderName} Có lỗi xảy ra khi xử lý hợp đồng: ${err.message}`,
