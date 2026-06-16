@@ -10,8 +10,59 @@ Bot Zalo cá nhân tích hợp AI của VNG Cloud. Khi bị tag trong group, bot
 - Phát hiện khi bị **tag/mention**
 - Hỗ trợ **5 phong cách trả lời** khác nhau
 - Tích hợp **VNG Cloud AI** (model `google/gemma-4-31b-it`)
+- **Điền hợp đồng tự động** từ file GPKD, CCCD và dữ liệu Excel
 - Rate limiting để tránh spam
 - Lưu session đăng nhập (không cần scan QR lại sau lần đầu)
+
+---
+
+## 📝 Tính Năng Hợp Đồng (`/hd`)
+
+Tính năng nổi bật: tự động điền thông tin doanh nghiệp vào template hợp đồng Word chỉ với một lệnh.
+
+### Cách dùng
+
+Gõ `/hd` trong group, sau đó gửi 3 file bắt buộc (trong vòng 90 giây):
+
+| File | Định dạng | Nội dung |
+|------|-----------|----------|
+| Template hợp đồng | `.docx` | File Word có `{placeholder}` |
+| Thông tin doanh nghiệp | `.xlsx` | STK, email, người liên hệ... |
+| Giấy phép kinh doanh | `.pdf` | GPKD (bot đọc bằng AI Vision) |
+
+File CCCD và Giấy ủy quyền là **tuỳ chọn** — gửi kèm nếu có.
+
+### Bot tự động trích xuất
+
+- 🏢 Tên công ty, địa chỉ, mã số thuế
+- 👤 Người đại diện pháp luật, chức vụ
+- 🏦 Số tài khoản, ngân hàng, tên chủ TK
+- 📞 Hotline, email
+- 👥 Bảng liên hệ 4 đầu mối: phụ trách hợp đồng, kỹ thuật, quan hệ khách hàng, thanh toán
+- 🏪 Danh sách cửa hàng (nếu có)
+
+### Placeholder template
+
+Template `.docx` sử dụng cú pháp `{ten_truong}`:
+
+```
+{ten_ben_a}        → Tên công ty
+{dia_chi_ben_a}    → Địa chỉ
+{ma_so_thue}       → Mã số thuế
+{dai_dien}         → Người đại diện
+{chuc_vu}          → Chức vụ
+{giay_uy_quyen}    → Số giấy ủy quyền (nếu có)
+{so_tai_khoan}     → Số tài khoản ngân hàng
+{ngan_hang}        → Tên ngân hàng
+{ten_chu_tk}       → Tên chủ tài khoản
+{hotline}          → Hotline
+{email}            → Email
+
+{ct_hd_ten/cv/email/sdt}   → Phụ trách hợp đồng
+{ct_kt_ten/cv/email/sdt}   → Phụ trách kỹ thuật
+{ct_kh_ten/cv/email/sdt}   → Phụ trách quan hệ KH
+{ct_tt_ten/cv/email/sdt}   → Phụ trách thanh toán
+```
 
 ---
 
@@ -97,14 +148,6 @@ Trong **Zalo group** có bot, tag bot kèm câu hỏi:
 @Bot Cà phê uống nhiều có tốt không?   ← mặc định dùng genz
 ```
 
-### Ví dụ output:
-
-**`[kkk]`**: `@Bot [kkk] Tại sao phải họp nhiều thế?`
-> Câu hỏi hay đấy... nếu chưa bao giờ đặt câu hỏi với lịch họp của sếp 🗿 Thật ra họp nhiều vì mọi người không ai dám quyết định gì một mình — tập thể thì chia sẻ được trách nhiệm. Cổ điển mà hiệu quả, ít nhất là với sếp. 😐
-
-**`[genz]`**: `@Bot Deadline hôm nay sao xử lý?`
-> omg bro fr fr deadline kiểu này là classic ngl ✨ tbh thì mày cứ focus vào task quan trọng nhất trước, literally đừng overthink. Ib sếp nếu cần extend, no cap là nhiều sếp chill hơn mày nghĩ đó. vibe check: bắt đầu từ 5 phút rồi tính tiếp 🔥
-
 ---
 
 ## ⚙️ Cấu Hình Nâng Cao
@@ -137,13 +180,21 @@ zalo-ai-bot/
 ├── .env                  # Cấu hình thực (không commit)
 ├── .gitignore
 └── src/
-    ├── bot.js            # Logic chính: login + lắng nghe
-    ├── ai.js             # Gọi VNG Cloud AI API
-    ├── tones.js          # Định nghĩa phong cách trả lời
-    ├── messageParser.js  # Phân tích tin nhắn, detect mention
-    ├── rateLimiter.js    # Giới hạn số request mỗi phút
-    ├── config.js         # Cấu hình tập trung
-    └── logger.js         # Logger màu sắc
+    ├── bot.js                      # Logic chính: login + lắng nghe
+    ├── ai.js                       # Gọi VNG Cloud AI API
+    ├── contractHandler.js          # Xử lý lệnh /hd: điền hợp đồng
+    ├── contractSession.js          # Thu thập file trong 90 giây
+    ├── docxFiller.js               # Điền {placeholder} vào Word template
+    ├── tones.js                    # Định nghĩa phong cách trả lời
+    ├── messageParser.js            # Phân tích tin nhắn, detect mention
+    ├── rateLimiter.js              # Giới hạn số request mỗi phút
+    ├── config.js                   # Cấu hình tập trung
+    ├── logger.js                   # Logger màu sắc
+    └── extractors/
+        ├── extractFromXLSX.js      # Đọc dữ liệu từ file Excel
+        ├── extractFromGPKD.js      # OCR giấy phép kinh doanh (AI Vision)
+        ├── extractFromCCCD.js      # OCR CCCD (AI Vision)
+        └── extractFromGiayUyQuyen.js  # OCR giấy ủy quyền (AI Vision)
 ```
 
 ---
@@ -159,6 +210,7 @@ zalo-ai-bot/
 - Kiểm tra `AI_PLATFORM_API_KEY` trong `.env`
 - Đảm bảo key còn quota trên VNG Cloud Console
 
-**Bot không nhận diện mention?**
-- Tag đúng tên tài khoản Zalo của bot
-- Đảm bảo dùng chức năng mention của Zalo (gõ @ rồi chọn từ danh sách)
+**`/hd` không điền được thông tin?**
+- Đảm bảo template `.docx` dùng đúng cú pháp `{placeholder}` (không có dấu cách bên trong)
+- File GPKD phải là PDF scan rõ nét để AI đọc được
+- Kiểm tra file Excel có đúng cột theo format mẫu không
