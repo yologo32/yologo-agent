@@ -2,9 +2,9 @@
 
 Bot Zalo tích hợp AI của VNG Cloud, chạy trong group chat. Hai tính năng chính:
 
-> 📝 **Điền hợp đồng tự động** — gửi 3 file (template Word + Excel + GPKD), bot trả về hợp đồng đã điền đầy đủ thông tin doanh nghiệp trong vài giây.
+> 📝 **Điền hợp đồng tự động** — gửi 4 file (template Word + file dữ liệu cửa hàng + file thông tin doanh nghiệp + GPKD), bot trả về hợp đồng đã điền đầy đủ thông tin trong vài giây.
 
-> 📋 **Tóm tắt hội thoại** — tag bot và yêu cầu tóm tắt, bot đọc lịch sử chat trong group và trả về bản tóm tắt ngắn gọn các điểm chính.
+> 📋 **Tóm tắt hội thoại** — cả group họp hành, bàn tới bàn lui mà vẫn không biết kết luận là gì? Tag bot, nó đọc hết lịch sử chat rồi tóm gọn lại cho — ai nói gì, quyết định gì, việc ai cần làm. Nghiêm túc đấy, không phải bot lười đâu.
 
 ---
 
